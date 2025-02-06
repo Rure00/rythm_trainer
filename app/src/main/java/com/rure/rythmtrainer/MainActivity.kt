@@ -27,6 +27,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+        Metronome(this, 60).run {
+            //play()
+        }
     }
 }
 
