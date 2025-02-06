@@ -1,28 +1,22 @@
-package com.rure.rythmtrainer
+package com.rure.rythmtrainer.metronome
 
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.SoundPool
-import android.os.Build
 import android.util.Log
+import com.rure.rythmtrainer.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlin.properties.Delegates
 
 class Metronome(
     private val context: Context,
     val bpm: Int
 ) {
     private val tag = "Metronome"
-
-    var isPlaying = false
-    private var soundId = 0
 
     private val audioManager by lazy {
         context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -39,6 +33,12 @@ class Metronome(
             .build()
     }
 
+    private var soundId = 0
+    var isPlaying = false
+        private set
+    var isReady = false
+        private set
+
     private val dispatcher = Dispatchers.IO
     private val work = CoroutineScope(dispatcher).async(start = CoroutineStart.LAZY) {
         Log.d(tag, "play!")
@@ -52,16 +52,21 @@ class Metronome(
 
     init {
         soundId = soundPool.load(context, R.raw.tick, 1);
-
         soundPool.setOnLoadCompleteListener { it, _, _ ->
             Log.d(tag, "load success.")
-            play()
+            isReady = true
         }
     }
 
-    fun play() {
+    fun play(): Boolean {
+        if(!isReady) {
+            Log.i(tag, "Load is Not Complete.")
+            return false
+        }
+
         isPlaying = true
         work.start()
+        return true
     }
 
     fun stop() {
