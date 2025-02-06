@@ -34,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -56,7 +57,7 @@ fun MetronomeComponent(
 ) {
     val tag = "MetronomeComponent"
 
-    var bpmValue by remember { mutableIntStateOf(60) }
+    var bpmValue by remember { mutableIntStateOf(120) }
     val metronome by remember {
         derivedStateOf { Metronome(context, bpmValue) }
     }
@@ -68,23 +69,30 @@ fun MetronomeComponent(
 
 
     val infiniteTransition = rememberInfiniteTransition(label = "")
-    val angle by infiniteTransition.animateFloat(
-        initialValue = -rotateMax,
-        targetValue = rotateMax,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = (60_000 / bpmValue), easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = ""
-    )
+    var angle by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(bpmValue, startMetronome) {
+        if(!startMetronome) return@LaunchedEffect
+
+        val startTime = System.currentTimeMillis()
+        val period = (60_000 / bpmValue).toLong()
+        while (true) {
+            withFrameNanos {
+                val elapsedTime = (System.currentTimeMillis() - startTime) % (2 * period)
+                val progress = elapsedTime.toFloat() / period - rotateMax/2
+                angle = rotateMax * kotlin.math.sin(progress * Math.PI).toFloat()
+            }
+        }
+    }
 
     LaunchedEffect(startMetronome) {
         if(!startMetronome) {
+            Log.d(tag, "startMetronome: stop")
             metronome.stop()
             return@LaunchedEffect
         }
 
-        metronome.play()
+        if(!metronome.play()) startMetronome = false
     }
 
     Column(
@@ -94,10 +102,13 @@ fun MetronomeComponent(
         TextField(
             value = bpmValue.toString(),
             onValueChange = {
-                if(it.toInt() >= 180) {
-                    Toast.makeText(context, "180 이상 불가", Toast.LENGTH_SHORT).show()
+//                if(it.toInt() > 180) {
+//                    Toast.makeText(context, "180 이상 불가", Toast.LENGTH_SHORT).show()
+//                }
+                startMetronome = false
+                if(it.isNotEmpty()){
+                    bpmValue = it.toInt()
                 }
-                bpmValue = it.toInt()
             },
             modifier = Modifier.padding(vertical = 20.dp, horizontal = 40.dp),
             singleLine = true,
