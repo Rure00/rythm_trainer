@@ -26,11 +26,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,12 +57,15 @@ fun MetronomeComponent(
     val tag = "MetronomeComponent"
 
     var bpmValue by remember { mutableIntStateOf(60) }
+    val metronome by remember {
+        derivedStateOf { Metronome(context, bpmValue) }
+    }
+
     var startMetronome by remember { mutableStateOf(false) }
 
     val rotateMax = 40f
     var rotate by remember { mutableFloatStateOf(0f) }
 
-    val bpm = 60_000
 
     val infiniteTransition = rememberInfiniteTransition(label = "")
     val angle by infiniteTransition.animateFloat(
@@ -74,12 +79,12 @@ fun MetronomeComponent(
     )
 
     LaunchedEffect(startMetronome) {
-        if(!startMetronome) return@LaunchedEffect
-
-        while (true) {
-            Log.d(tag, "angle: ${angle}")
-            delay(1000)
+        if(!startMetronome) {
+            metronome.stop()
+            return@LaunchedEffect
         }
+
+        metronome.play()
     }
 
     Column(
@@ -100,7 +105,9 @@ fun MetronomeComponent(
         )
 
         Box(
-            modifier = Modifier.fillMaxWidth().height(400.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
             Surface(
@@ -112,8 +119,8 @@ fun MetronomeComponent(
                             pivotFractionX = 0.5f,
                             pivotFractionY = 1f,
                         ),
-                        rotationZ = angle,
-                ),
+                        rotationZ = if(!startMetronome) 0f else angle,
+                    ),
                 color = Color.Black,
                 shape = RoundedCornerShape(8.dp)
             ) { }
@@ -122,7 +129,9 @@ fun MetronomeComponent(
         Text(
             text = if(!startMetronome) "시작" else "중지",
             fontSize = 18.sp,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 20.dp)
                 .background(shape = RoundedCornerShape(8.dp), color = Purple40)
                 .clickable {
                     startMetronome = !startMetronome

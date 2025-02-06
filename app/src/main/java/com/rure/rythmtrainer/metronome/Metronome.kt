@@ -11,10 +11,11 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class Metronome(
     private val context: Context,
-    val bpm: Int
+    val bpm: Int,
 ) {
     private val tag = "Metronome"
 
@@ -40,15 +41,6 @@ class Metronome(
         private set
 
     private val dispatcher = Dispatchers.IO
-    private val work = CoroutineScope(dispatcher).async(start = CoroutineStart.LAZY) {
-        Log.d(tag, "play!")
-        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-        val volume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / max
-        while (isPlaying) {
-            soundPool.play(soundId, volume, volume, 1, 0 ,1f)
-            delay(60L / bpm.toLong() * 1000)
-        }
-    }
 
     init {
         soundId = soundPool.load(context, R.raw.tick, 1);
@@ -64,17 +56,30 @@ class Metronome(
             return false
         }
 
+        Log.d(tag, "metronome start!")
         isPlaying = true
-        work.start()
+        doPlay()
         return true
     }
 
     fun stop() {
         kotlin.runCatching {
             isPlaying = false
-            work.cancel()
         }.onFailure {
             Log.e(tag, "Metronome Stop Error: ${it.message}")
+        }
+    }
+
+    private fun doPlay() {
+        CoroutineScope(dispatcher).launch {
+            Log.d(tag, "play!")
+            val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            val volume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / max
+            while (isPlaying) {
+                soundPool.play(soundId, volume, volume, 1, 0 ,1f)
+                Log.d(tag, "sound!")
+                delay(60L / bpm.toLong() * 1000)
+            }
         }
     }
 }
