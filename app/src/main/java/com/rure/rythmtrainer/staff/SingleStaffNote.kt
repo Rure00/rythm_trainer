@@ -1,8 +1,6 @@
 package com.rure.rythmtrainer.staff
 
-import kotlin.jvm.Throws
-
-data class StaffNotes(
+data class SingleStaffNote(
     val noteNum: Int,
     val headNote: Note,
     val notes: List<Note>
