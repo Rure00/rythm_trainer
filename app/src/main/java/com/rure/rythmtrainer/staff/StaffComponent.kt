@@ -52,14 +52,15 @@ private fun SingleStaffLine(
         // 음표
         Row(
             modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
             notes.forEach {
                 Image(
                     painter = painterResource(it.imageId),
                     modifier = Modifier.size(36.dp).weight(it.length.toFloat()),
-                    contentDescription = null
+                    contentDescription = null,
+                    alignment = Alignment.CenterStart
                 )
             }
         }
